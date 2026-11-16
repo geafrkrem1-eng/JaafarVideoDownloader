@@ -15,8 +15,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract Android project ZIP
-        run: unzip -o JaafarVideoDownloader-Android-Project.zip -d .
+      - name: Find and extract Android project ZIP
+        shell: bash
+        run: |
+          echo "Files in repository:"
+          find . -maxdepth 3 -type f -not -path './.git/*' | sort | head -200
+          ZIP_FILE="$(find . -type f -iname '*.zip' -not -path './.git/*' -print -quit)"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No ZIP file was found in the repository. Upload JaafarVideoDownloader-Android-Project.zip and commit it."
+            exit 1
+          fi
+          echo "Found project archive: $ZIP_FILE"
+          unzip -o "$ZIP_FILE" -d .
+          if [ ! -f JaafarVideoDownloader/app/build.gradle.kts ]; then
+            echo "ERROR: Expected project files under JaafarVideoDownloader/ were not found after extraction."
+            echo "Extracted files:"
+            find . -maxdepth 3 -type f | sort | head -200
+            exit 1
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -40,4 +56,3 @@ jobs:
           path: JaafarVideoDownloader/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-          
